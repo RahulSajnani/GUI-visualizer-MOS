@@ -87,3 +87,31 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, phi_s, Temp)
     potential(mid_point:W_position) =  -q * N_a * (x_axis(mid_point:W_position) - x_axis(W_position)) / (eps_0 * K_s);
     
 end
+
+function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_s, Temp)
+    
+    set_globals();
+    global q ticks;
+    
+    x_step = (2*L) / ticks;
+    x_axis = -L:x_step:L;
+    s = size(x_axis);
+    s = s(2);
+    mid_point = int16(s/2);
+    
+    
+    Q_density = zeros(1, s);
+    % Obtain depletion width
+    W = get_depletion_width(K_s, phi_s, N_a);
+    
+    % junction position and depletion width in steps
+    junction_position = int16(mid_point - (T_ox / (x_step)));
+    W_position = int16(mid_point + ((W) / (x_step)));
+    
+    Q_d = -q * N_a * W;
+    
+    
+    Q_density(1:junction_position) = q * N_a * W / (x_axis(junction_position) - x_axis(1) + 0.00000001);
+    Q_density(mid_point:W_position) =  -q * N_a; 
+    
+end
