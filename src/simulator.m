@@ -93,19 +93,23 @@ function button_Callback(hObject, eventdata, handles)
     [E, x] = f(N_s, K_s, K_ox, L, T_ox, Temp);
     axes(handles.axes1);
     plot(x, E);
-    
+    xlabel("x (m)");
+    ylabel("E field (m⋅kg⋅s(−3)⋅A(−1))");
     
     f = MOS_callback_fns("get_voltage_junction");
     potential = f(N_s, K_s, K_ox, L, T_ox, Temp, V_a);
     axes(handles.axes3);
     plot(x, potential);
-    
+    xlabel("x (m)");
+    ylabel("V (V)");
     
     
     f = MOS_callback_fns("get_charge_density");
     Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, Temp);
     axes(handles.axes6);
     plot(x, Q_density);
+    xlabel("x (m)");
+    ylabel("Q_d (C m(-3))");
     
     
     f = MOS_callback_fns("get_energy_band");
@@ -117,7 +121,8 @@ function button_Callback(hObject, eventdata, handles)
     plot(x, E_i);
     plot(x, E_f);
     hold off;
-    
+    xlabel("x (m)");
+    ylabel("Energy band (J)");
 
 
 function N_s_Callback(hObject, eventdata, handles)
