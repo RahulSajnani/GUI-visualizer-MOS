@@ -84,14 +84,40 @@ function button_Callback(hObject, eventdata, handles)
     K_s = str2double(get(handles.K_s, "string"));
     K_ox = str2double(get(handles.K_ox, "string"));
     Temp = str2double(get(handles.Temp, "string"));
-    phi_s = str2double(get(handles.phi_s, "string"));
     T_ox = str2double(get(handles.T_ox, "string"));
+    L = str2double(get(handles.L, "string"));
+    phi_m = str2double(get(handles.phi_m, "string"));
     
+    % get electric field
     f = MOS_callback_fns("get_electric_field");
-    E = f(N_s, K_s, K_ox, 3e-7, T_ox, phi_s);
+    [E, x] = f(N_s, K_s, K_ox, L, T_ox, Temp);
     axes(handles.axes1);
-    plot(E);
-    fprintf("%f", N_s);
+    plot(x, E);
+    
+    
+    f = MOS_callback_fns("get_voltage_junction");
+    potential = f(N_s, K_s, K_ox, L, T_ox, Temp, V_a);
+    axes(handles.axes3);
+    plot(x, potential);
+    
+    
+    
+    f = MOS_callback_fns("get_charge_density");
+    Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, Temp);
+    axes(handles.axes6);
+    plot(x, Q_density);
+    
+    
+    f = MOS_callback_fns("get_energy_band");
+    [E_c, E_i, E_v, E_f] = f(N_s, K_s, K_ox, L, T_ox, phi_m, Temp, V_a);
+    axes(handles.axes5);
+    plot(x, E_c);
+    hold on;
+    plot(x, E_v);
+    plot(x, E_i);
+    plot(x, E_f);
+    hold off;
+    
 
 
 function N_s_Callback(hObject, eventdata, handles)
