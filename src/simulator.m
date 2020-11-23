@@ -22,7 +22,7 @@ function varargout = simulator(varargin)
 
 % Edit the above text to modify the response to help simulator
 
-% Last Modified by GUIDE v2.5 20-Nov-2020 22:31:40
+% Last Modified by GUIDE v2.5 23-Nov-2020 02:03:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -85,7 +85,12 @@ function button_Callback(hObject, eventdata, handles)
     K_ox = str2double(get(handles.K_ox, "string"));
     Temp = str2double(get(handles.Temp, "string"));
     phi_s = str2double(get(handles.phi_s, "string"));
+    T_ox = str2double(get(handles.T_ox, "string"));
     
+    f = MOS_callback_fns("get_electric_field");
+    E = f(N_s, K_s, K_ox, 3e-7, T_ox, phi_s);
+    axes(handles.axes1);
+    plot(E);
     fprintf("%f", N_s);
 
 
@@ -293,6 +298,29 @@ function phi_m_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function phi_m_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to phi_m (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function L_Callback(hObject, eventdata, handles)
+% hObject    handle to L (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of L as text
+%        str2double(get(hObject,'String')) returns contents of L as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function L_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to L (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
