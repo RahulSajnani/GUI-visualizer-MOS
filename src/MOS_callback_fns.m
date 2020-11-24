@@ -5,7 +5,7 @@ end
 
 function set_globals()
     
-    global eps_0 q ticks k; 
+    global eps_0 q ticks k E_g A_ox; 
     % Permittivity of free space
     eps_0 = 8.85e-12;
     % Charge value
@@ -14,7 +14,11 @@ function set_globals()
     ticks = 1e4;
     % boltzmann constant
     k = 1.38e-23;
+    % Energy band gap for Silicon
+    E_g = 1.14 * q;
     
+    % Cross section area
+    A_ox = 1e-7;
 end
 
 function W = get_depletion_width(K_s, phi_s, N_a)
@@ -29,38 +33,44 @@ function W = get_depletion_width(K_s, phi_s, N_a)
     
 end
 
-function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp)
+function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g)
     % Function to get electric field at MOS junction
     
     % set global variables
     set_globals();
     % get global values for eps and q
-    global eps_0 q ticks k;
-
-    x_step = (2*L) / ticks;
-    x_axis = -L:x_step:L;
-
-    s = size(x_axis);
-    s = s(2);
+    global eps_0 q ticks k n_i;
     
-    mid_point = int16(s/2);
+    
+    % flatband voltage
+    V_fb = phi_m - phi_p;
+    
+
+    % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    n_i = 1.5 * 10^10 * (100)^3;
+    phi_f    = (k * Temp / q) * log(N_a / n_i);
+    
+    if (phi_s > 2 * phi_f)
+        phi_s = 2 * phi_f;
+    end
+    [x_axis, mid_point, x_step, s] = initialize(L);
     
     E_field = zeros(1, s);
-    n_i = 5.29 * 10^(19) * (Temp / 300);
-    phi_b = (k * Temp / q) * log(N_a / n_i);
-    W = get_depletion_width(K_s, phi_b, N_a);
+    % n_i = 5.29 * 10^(19) * (Temp / 300);
+    W = get_depletion_width(K_s, phi_s, N_a);
     
     % junction position and depletion width in steps
     junction_position = int16(mid_point - (T_ox / (x_step)));
     W_position = int16(mid_point + ((W) / (x_step)));
     
-   
+    W_position 
     E_field(junction_position:mid_point) = q * N_a * x_axis(W_position) / (K_ox * eps_0);
     E_field(mid_point:W_position) =  -q * N_a * (x_axis(mid_point:W_position) - x_axis(W_position)) / (eps_0 * K_s);
     
 end
     
-function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a)
+function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g)
     % Function to get voltage plot for MOS junction
     
     % set global variables
@@ -68,18 +78,27 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a)
     % get global values for eps and q
     global eps_0 q ticks k;
 
-    x_step = (2*L) / ticks;
-    x_axis = -L:x_step:L;
-    s = size(x_axis);
-    s = s(2);
-    mid_point = int16(s/2);
     
+    [x_axis, mid_point, x_step, s] = initialize(L);
+
+    
+    % flatband voltage
+    V_fb = phi_m - phi_p;
     potential = zeros(1, s);
-    n_i = 5.29 * 10^(19) * (Temp / 300);
-    phi_b = (k * Temp / q) * log(N_a / n_i);
-    W = get_depletion_width(K_s, phi_b, N_a);
+
+    % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    n_i = 1.5 * 10^10 * (100)^3;
+    phi_f = (k * Temp / q) * log(N_a / n_i);
+
+    if (phi_s > 2 * phi_f)
+        phi_s = 2 * phi_f;
+    end
+
+    % n_i = 5.29 * 10^(19) * (Temp / 300);
+    W = get_depletion_width(K_s, phi_s, N_a);
     
-    E = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp);
+    E = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g);
 
     
     
@@ -89,10 +108,10 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a)
 
     %potential(junction_position:mid_point) = q * N_a * x_axis(W_position) / (K_ox * eps_0);
     potential(mid_point:W_position) =  q * N_a * (x_axis(W_position) - x_axis(mid_point:W_position)).^2 / (eps_0 * K_s * 2);
-    m = (V_a - potential(mid_point)) / (x_axis(junction_position) - x_axis(mid_point) + 0.00000000000000000001);
-    c = V_a - m * x_axis(junction_position);
+    m = (V_g - potential(mid_point)) / (x_axis(junction_position) - x_axis(mid_point) + 0.00000000000000000001);
+    c = V_g - m * x_axis(junction_position);
     potential(junction_position:mid_point) = m * (x_axis(junction_position:mid_point)) + c; 
-    potential(1:junction_position) = V_a;
+    potential(1:junction_position) = V_g;
     
 end
 
@@ -101,16 +120,12 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, Temp)
     set_globals();
     global q ticks k;
     
-    x_step = (2*L) / ticks;
-    x_axis = -L:x_step:L;
-    s = size(x_axis);
-    s = s(2);
-    mid_point = int16(s/2);
-    
+    [x_axis, mid_point, x_step, s] = initialize(L);
     
     Q_density = zeros(1, s);
     
-    n_i = 5.29 * 10^(19) * (Temp / 300);
+    n_i = 1.5 * 10^10 * (100)^3;
+    % n_i = 5.29 * 10^(19) * (Temp / 300);
     phi_b = (k * Temp / q) * log(N_a / n_i);
     % Obtain depletion width
     
@@ -127,47 +142,104 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, Temp)
     
 end
 
-function [E_c, E_i, E_v, E_f] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, Temp, V_a)
-    
+
+function [x_axis, mid_point, x_step, s] = initialize(L)
+
+
     set_globals();
-    global q ticks k;
-    
-    x_step = (2*L) / ticks;
+    % get global values for eps and q
+    global eps_0 q ticks k;
+    x_step = (2 * L) / ticks;
     x_axis = -L:x_step:L;
     s = size(x_axis);
     s = s(2);
-    mid_point = int16(s/2);
+    mid_point = int16(s / 2);
+
+end
+
+
+function [root_1, root_2] = solve_quadratic_equation(a, b, c)
+
+    d = sqrt(b.^2 - 4 * a * c);
+
+    root_1 = (-b + d) / (2 * a);
+    root_2 = (-b - d) / (2 * a);
+end
+
+
+function phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox)
+
+    set_globals()
+    global eps_0 q A_ox;
+
+    C_ox = K_ox * eps_0 * A_ox / T_ox;
+
+    % phi_s = (q * N_a * K_s * eps_0) / (2 * C_ox^2) * (sqrt(1 + 2 * C_ox^2 * (V_g - V_fb) / (q * N_a * K_s * eps_0)) - 1)^2; 
+    a = 1.0;
+    b = -2 * (V_g - V_fb) - (2 * q * N_a * T_ox.^2) / (K_ox * eps_0);
+    c = (V_g - V_fb).^2;
     
-    % Energy band gap for Silicon
-    E_g = 1.14 * q;
+    [root_1, root_2] = solve_quadratic_equation(a, b, c);
+    phi_s = root_2;
+
+end
+
+function [E_f, E_c, E_i, E_v, E_f_metal] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
     
-    n_i = 5.29 * 10^(19) * (Temp / 300);
-    phi_b = (k * Temp / q) * log(N_a / n_i);
-    V_fb = phi_m - phi_b;
+    set_globals();
     
-    Ef_metal = q * (V_a + V_fb);
+    global q ticks k eps_0 E_g A_ox;
     
-    E_f = ones(1, s) * Ef_metal;
+    [x_axis, mid_point, x_step, s] = initialize(L);
+
     
+    % flatband voltage
+    V_fb = phi_m - phi_p;
+    V_fb
+
+    % applied voltage
+    V_a = V_g - V_fb;
+    
+    E_f = q * phi_p  * ones(1,s);
     E_i = E_f;
-    potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a);
+    potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g);
+    n_i = 1.5 * 10^10 * (100)^3; 
+    %5.29 * 10^(19) * (Temp / 300);
+    phi_f = (k * Temp / q) * log(N_a / n_i);
+    E_i(mid_point:end) = -q * potential(mid_point:end) + q * phi_f + E_f(mid_point:end);
+    C_ox_per_area = K_ox * eps_0 / (T_ox);
+
+    C_ox = C_ox_per_area * A_ox;
+
+
     
-    E_i(mid_point:end) = E_i(mid_point:end) - q*potential(mid_point:end) + q*phi_b;
+    E_f_metal = E_f - q * (V_g - V_fb);
+    % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf 
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+
+    % if (phi_s > 2 * phi_f)
+    %     phi_s
+    %     phi_f
+    % end
+
+
+    if (phi_s > 2 * phi_f)
+        phi_s = 2 * phi_f;   
+    end
+    W = get_depletion_width(K_s, phi_s, N_a);
     
+    V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f
     
-    E_v = E_i - E_g / 2;
-    
-    E_v(1:mid_point) = E_i(1:mid_point);
-    E_c = E_i + E_g / 2;
-    E_c(1:mid_point) = E_i(1:mid_point);
-    
-    % Obtain depletion width
-    W = get_depletion_width(K_s, phi_b, N_a);
     
     % junction position and depletion width in steps
     junction_position = int16(mid_point - (T_ox / (x_step)));
     W_position = int16(mid_point + ((W) / (x_step)));
 
-  
+    % Ef_metal = q * (V_fb);
     
+    E_v = E_i - E_g / 2;
+    E_v(1:mid_point) = E_i(1:mid_point);
+    E_c = E_i + E_g / 2;
+    E_c(1:mid_point) = E_i(1:mid_point);
+     
 end
