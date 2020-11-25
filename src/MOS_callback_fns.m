@@ -32,7 +32,7 @@ function W = get_depletion_width(K_s, phi_s, N_a)
     W = sqrt(2 * K_s * eps_0 * phi_s / (q * N_a));
 
     if W ~= real(W)
-        W = sqrt(2 * K_s * eps_0 * -abs(phi_s) / (q * N_a));
+        W = sqrt(2 * K_s * eps_0 * -phi_s / (q * N_a));
     end
     
 end
