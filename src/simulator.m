@@ -93,6 +93,19 @@ function button_Callback(hObject, eventdata, handles)
     V_fb = phi_m - phi_p;
     V_a = V_g - V_fb;
 
+    radio_button = get(get(handles.type_panel, 'SelectedObject'), 'Tag');
+
+    % p type
+    type_si = 0;
+
+    if radio_button == "p_radio"
+        type_si = 0;
+    elseif radio_button == "n_radio"
+        % n type 
+        type_si = 1;
+        fprintf("n type")
+    end
+
     % get electric field
     f = MOS_callback_fns("get_electric_field");
     [E, x] = f(N_s, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g);
