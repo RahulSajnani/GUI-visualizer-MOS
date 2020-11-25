@@ -108,10 +108,10 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, ph
 
     %potential(junction_position:mid_point) = q * N_a * x_axis(W_position) / (K_ox * eps_0);
     potential(mid_point:W_position) =  q * N_a * (x_axis(W_position) - x_axis(mid_point:W_position)).^2 / (eps_0 * K_s * 2);
-    m = (V_g - potential(mid_point)) / (x_axis(junction_position) - x_axis(mid_point) + 0.00000000000000000001);
-    c = V_g - m * x_axis(junction_position);
+    m = (V_a - potential(mid_point)) / (x_axis(junction_position) - x_axis(mid_point));
+    c = V_a - m * x_axis(junction_position);
     potential(junction_position:mid_point) = m * (x_axis(junction_position:mid_point)) + c; 
-    potential(1:junction_position) = V_g;
+    potential(1:junction_position) = V_a;
     
 end
 
