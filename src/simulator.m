@@ -84,14 +84,14 @@ function button_Callback(hObject, eventdata, handles)
     K_s = str2double(get(handles.K_s, "string"));
     K_ox = str2double(get(handles.K_ox, "string"));
     % Temp = str2double(get(handles.Temp, "string"));
-    Temp = 300 
+    Temp = 300;
     T_ox = str2double(get(handles.T_ox, "string"));
     L = str2double(get(handles.L, "string"));
     phi_m = str2double(get(handles.phi_m, "string"));
     % phi_p = str2double(get(handles.phi_p, "string"));
     phi_p = 5.0;
     V_fb = phi_m - phi_p;
-    V_a = V_g - V_fb
+    V_a = V_g - V_fb;
 
     % get electric field
     f = MOS_callback_fns("get_electric_field");
@@ -111,7 +111,7 @@ function button_Callback(hObject, eventdata, handles)
     grid on;
     
     f = MOS_callback_fns("get_charge_density");
-    Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, Temp);
+    Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g);
     axes(handles.axes6);
     plot(x, Q_density);
     xlabel("x (m)");
@@ -119,7 +119,7 @@ function button_Callback(hObject, eventdata, handles)
     grid on;
     
     f = MOS_callback_fns("get_energy_band");
-    [E_f, E_c, E_i, E_v, E_fm] = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g);
+    [E_f, E_c, E_i, E_v, E_fm, V_th, phi_s, phi_f, W] = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g);
     
     s = size(E_f);
     mid = int16(s(2) / 2);
@@ -134,6 +134,9 @@ function button_Callback(hObject, eventdata, handles)
     xlabel("x (m)");
     ylabel("Energy band (J)");
     grid on;
+
+    output = sprintf('V_th: %d\nV_fb: %d\nphi_s: %d\nphi_f: %d\nDepletion width: %d', V_th, V_fb, phi_s, phi_f, W);
+    set(handles.info, "string", output)
 
 
 function N_s_Callback(hObject, eventdata, handles)

@@ -64,7 +64,7 @@ function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, p
     junction_position = int16(mid_point - (T_ox / (x_step)));
     W_position = int16(mid_point + ((W) / (x_step)));
     
-    W_position 
+    
     E_field(junction_position:mid_point) = q * N_a * x_axis(W_position) / (K_ox * eps_0);
     E_field(mid_point:W_position) =  -q * N_a * (x_axis(mid_point:W_position) - x_axis(W_position)) / (eps_0 * K_s);
     
@@ -115,7 +115,7 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, ph
     
 end
 
-function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, Temp)
+function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
     
     set_globals();
     global q ticks k;
@@ -123,13 +123,19 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, Temp)
     [x_axis, mid_point, x_step, s] = initialize(L);
     
     Q_density = zeros(1, s);
+
+    V_fb = phi_m - phi_p;
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
     
     n_i = 1.5 * 10^10 * (100)^3;
     % n_i = 5.29 * 10^(19) * (Temp / 300);
-    phi_b = (k * Temp / q) * log(N_a / n_i);
+    phi_f = (k * Temp / q) * log(N_a / n_i);
     % Obtain depletion width
     
-    W = get_depletion_width(K_s, phi_b, N_a);
+    if phi_s > 2 * phi_f
+        phi_s = 2 * phi_f;
+    end
+    W = get_depletion_width(K_s, phi_s, N_a);
     
     % junction position and depletion width in steps
     junction_position = int16(mid_point - (T_ox / (x_step)));
@@ -139,6 +145,10 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, Temp)
     
     Q_density(1:junction_position) = q * N_a * W / (x_axis(junction_position) - x_axis(1) + 0.00000001);
     Q_density(mid_point:W_position) =  -q * N_a; 
+
+    if W < 1e-17
+        Q_density = zeros(1, s);
+    end
     
 end
 
@@ -184,18 +194,16 @@ function phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox)
 
 end
 
-function [E_f, E_c, E_i, E_v, E_f_metal] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
+function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
     
     set_globals();
     
     global q ticks k eps_0 E_g A_ox;
     
     [x_axis, mid_point, x_step, s] = initialize(L);
-
     
     % flatband voltage
     V_fb = phi_m - phi_p;
-    V_fb
 
     % applied voltage
     V_a = V_g - V_fb;
@@ -211,31 +219,22 @@ function [E_f, E_c, E_i, E_v, E_f_metal] = get_energy_band(N_a, K_s, K_ox, L, T_
 
     C_ox = C_ox_per_area * A_ox;
 
-
-    
     E_f_metal = E_f - q * (V_g - V_fb);
+   
     % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf 
     phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
-
-    % if (phi_s > 2 * phi_f)
-    %     phi_s
-    %     phi_f
-    % end
-
 
     if (phi_s > 2 * phi_f)
         phi_s = 2 * phi_f;   
     end
     W = get_depletion_width(K_s, phi_s, N_a);
     
-    V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f
-    
+    V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f;
     
     % junction position and depletion width in steps
     junction_position = int16(mid_point - (T_ox / (x_step)));
     W_position = int16(mid_point + ((W) / (x_step)));
 
-    % Ef_metal = q * (V_fb);
     
     E_v = E_i - E_g / 2;
     E_v(1:mid_point) = E_i(1:mid_point);
