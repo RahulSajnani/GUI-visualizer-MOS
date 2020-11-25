@@ -30,10 +30,13 @@ function W = get_depletion_width(K_s, phi_s, N_a)
     
     % Width of depletion layer
     W = sqrt(2 * K_s * eps_0 * phi_s / (q * N_a));
+    if W ~= real(W)
+        W = sqrt(2 * K_s * eps_0 * abs(phi_s) / (q * N_a));
+    end
     
 end
 
-function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g)
+function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g, type_si)
     % Function to get electric field at MOS junction
     
     % set global variables
@@ -47,11 +50,21 @@ function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, p
     
 
     % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf
-    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
     n_i = 1.5 * 10^10 * (100)^3;
-    phi_f    = (k * Temp / q) * log(N_a / n_i);
     
-    if (phi_s > 2 * phi_f)
+    if type_si == 0
+        % P type substrate
+        phi_f = (k * Temp / q) * log(N_a / n_i);
+    else
+        % N type substrate
+        phi_f = -(k * Temp / q) * log(N_a / n_i);
+    end
+
+    if (phi_s > 2 * phi_f) && type_si == 0
+        phi_s = 2 * phi_f;
+
+    elseif (phi_s < 2 * phi_f) && type_si == 1
         phi_s = 2 * phi_f;
     end
     [x_axis, mid_point, x_step, s] = initialize(L);
@@ -70,7 +83,7 @@ function [E_field, x_axis] = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, p
     
 end
     
-function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g)
+function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g, type_si)
     % Function to get voltage plot for MOS junction
     
     % set global variables
@@ -87,18 +100,27 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, ph
     potential = zeros(1, s);
 
     % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf
-    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
     n_i = 1.5 * 10^10 * (100)^3;
-    phi_f = (k * Temp / q) * log(N_a / n_i);
+    
+    if type_si == 0
+        % P type substrate
+        phi_f = (k * Temp / q) * log(N_a / n_i);
+    else
+        % N type substrate
+        phi_f = -(k * Temp / q) * log(N_a / n_i);
+    end
+    
+    if (phi_s > 2 * phi_f) && type_si == 0
+        phi_s = 2 * phi_f;
 
-    if (phi_s > 2 * phi_f)
+    elseif (phi_s < 2 * phi_f) && type_si == 1
         phi_s = 2 * phi_f;
     end
 
     % n_i = 5.29 * 10^(19) * (Temp / 300);
     W = get_depletion_width(K_s, phi_s, N_a);
-    
-    E = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g);
+    E = get_electric_field(N_a, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g, type_si);
 
     
     
@@ -115,7 +137,7 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, ph
     
 end
 
-function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
+function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si)
     
     set_globals();
     global q ticks k;
@@ -125,14 +147,24 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, T
     Q_density = zeros(1, s);
 
     V_fb = phi_m - phi_p;
-    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
     
     n_i = 1.5 * 10^10 * (100)^3;
     % n_i = 5.29 * 10^(19) * (Temp / 300);
-    phi_f = (k * Temp / q) * log(N_a / n_i);
+    if type_si == 0
+        % P type substrate
+        phi_f = (k * Temp / q) * log(N_a / n_i);
+    else
+        % N type substrate
+        phi_f = -(k * Temp / q) * log(N_a / n_i);
+    end
+
     % Obtain depletion width
     
-    if phi_s > 2 * phi_f
+    if (phi_s > 2 * phi_f) && type_si == 0
+        phi_s = 2 * phi_f;
+
+    elseif (phi_s < 2 * phi_f) && type_si == 1
         phi_s = 2 * phi_f;
     end
     W = get_depletion_width(K_s, phi_s, N_a);
@@ -177,7 +209,7 @@ function [root_1, root_2] = solve_quadratic_equation(a, b, c)
 end
 
 
-function phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox)
+function phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si)
 
     set_globals()
     global eps_0 q A_ox;
@@ -186,15 +218,20 @@ function phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox)
 
     % phi_s = (q * N_a * K_s * eps_0) / (2 * C_ox^2) * (sqrt(1 + 2 * C_ox^2 * (V_g - V_fb) / (q * N_a * K_s * eps_0)) - 1)^2; 
     a = 1.0;
-    b = -2 * (V_g - V_fb) - (2 * q * N_a * T_ox.^2) / (K_ox * eps_0);
+    b = -2 * (V_g - V_fb) - (2 * q * N_a * K_s * T_ox.^2) / (K_ox^2 * eps_0);
     c = (V_g - V_fb).^2;
     
     [root_1, root_2] = solve_quadratic_equation(a, b, c);
-    phi_s = root_2;
+    if type_si == 0
+
+        phi_s = root_2;
+    else
+        phi_s = root_1;
+    end
 
 end
 
-function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g)
+function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_band(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si)
     
     set_globals();
     
@@ -210,23 +247,37 @@ function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_ban
     
     E_f = q * phi_p  * ones(1,s);
     E_i = E_f;
-    potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g);
+    potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g, type_si);
     n_i = 1.5 * 10^10 * (100)^3; 
     %5.29 * 10^(19) * (Temp / 300);
-    phi_f = (k * Temp / q) * log(N_a / n_i);
-    E_i(mid_point:end) = -q * potential(mid_point:end) + q * phi_f + E_f(mid_point:end);
-    C_ox_per_area = K_ox * eps_0 / (T_ox);
+
+    if type_si == 0
+        % P type substrate
+        phi_f = (k * Temp / q) * log(N_a / n_i);
+    else
+        % N type substrate
+        phi_f = -(k * Temp / q) * log(N_a / n_i);
+    end
+        E_i(mid_point:end) = -q * potential(mid_point:end) + q * phi_f + E_f(mid_point:end);
+    
+        C_ox_per_area = K_ox * eps_0 / (T_ox);
 
     C_ox = C_ox_per_area * A_ox;
 
     E_f_metal = E_f - q * (V_g - V_fb);
    
     % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf 
-    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox);
+    phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
 
-    if (phi_s > 2 * phi_f)
+    
+    if (phi_s > 2 * phi_f) && type_si == 0
         phi_s = 2 * phi_f;   
+    
+    elseif (phi_s < 2 * phi_f) && type_si == 1
+        phi_s = 2 * phi_f;
     end
+
+
     W = get_depletion_width(K_s, phi_s, N_a);
     
     V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f;

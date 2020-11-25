@@ -90,25 +90,29 @@ function button_Callback(hObject, eventdata, handles)
     phi_m = str2double(get(handles.phi_m, "string"));
     % phi_p = str2double(get(handles.phi_p, "string"));
     phi_p = 5.0;
-    V_fb = phi_m - phi_p;
-    V_a = V_g - V_fb;
-
-    radio_button = get(get(handles.type_panel, 'SelectedObject'), 'Tag');
-
     % p type
     type_si = 0;
-
+    radio_button = get(get(handles.type_panel, 'SelectedObject'), 'Tag');
     if radio_button == "p_radio"
         type_si = 0;
     elseif radio_button == "n_radio"
-        % n type 
+        % n type
         type_si = 1;
+        N_s =- N_s;
+        phi_p = 4.0;
         fprintf("n type")
     end
+   
+   
+    V_fb = phi_m - phi_p;
+    V_a = V_g - V_fb;
+
+
+
 
     % get electric field
     f = MOS_callback_fns("get_electric_field");
-    [E, x] = f(N_s, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g);
+    [E, x] = f(N_s, K_s, K_ox, L, T_ox, Temp, phi_m, phi_p, V_g, type_si);
     axes(handles.axes1);
     plot(x, E);
     xlabel("x (m)");
@@ -116,7 +120,7 @@ function button_Callback(hObject, eventdata, handles)
     grid on;
 
     f = MOS_callback_fns("get_voltage_junction");
-    potential = f(N_s, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g);
+    potential = f(N_s, K_s, K_ox, L, T_ox, Temp, V_a, phi_m, phi_p, V_g, type_si);
     axes(handles.axes3);
     plot(x, potential);
     xlabel("x (m)");
@@ -124,7 +128,7 @@ function button_Callback(hObject, eventdata, handles)
     grid on;
     
     f = MOS_callback_fns("get_charge_density");
-    Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g);
+    Q_density = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si);
     axes(handles.axes6);
     plot(x, Q_density);
     xlabel("x (m)");
@@ -132,7 +136,7 @@ function button_Callback(hObject, eventdata, handles)
     grid on;
     
     f = MOS_callback_fns("get_energy_band");
-    [E_f, E_c, E_i, E_v, E_fm, V_th, phi_s, phi_f, W] = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g);
+    [E_f, E_c, E_i, E_v, E_fm, V_th, phi_s, phi_f, W] = f(N_s, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si);
     
     s = size(E_f);
     mid = int16(s(2) / 2);
