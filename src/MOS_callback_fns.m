@@ -269,6 +269,7 @@ function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_ban
     % Solving quadrtic equation in the given link to get surface potential: https://engineering.purdue.edu/~ee606/downloads/ECE606_f12_Lecture21.pdf 
     phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
 
+
     
     if (phi_s > 2 * phi_f) && type_si == 0
         phi_s = 2 * phi_f;   
@@ -280,8 +281,11 @@ function [E_f, E_c, E_i, E_v, E_f_metal, V_th, phi_s, phi_f, W] = get_energy_ban
 
     W = get_depletion_width(K_s, phi_s, N_a);
     
-    V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f;
-    
+    if type_si == 0
+        V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f;
+    else
+        V_th = V_fb - sqrt(2 * q * K_s * eps_0 * -N_a * 2 * abs(phi_f)) / C_ox_per_area + 2 * phi_f;
+    end
     % junction position and depletion width in steps
     junction_position = int16(mid_point - (T_ox / (x_step)));
     W_position = int16(mid_point + ((W) / (x_step)));
