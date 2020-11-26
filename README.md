@@ -16,7 +16,7 @@ cd src
 simulator
 ```
 
-2. **Derivation of Surface potential **
+2. **Derivation of Surface potential**
 
    I have provided derivation to calculating the surface potential (when depletion width is unknown) used in the code in the derivation folder.  
 
