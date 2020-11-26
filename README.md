@@ -6,7 +6,7 @@ This is a GUI simulator for MOS capacitors. Following is the demo for the same.
 
 ### Instructions
 
-1. To run the code:
+1. **Run the code**
 
 ```matlab
 % Execute the following in matlab terminal.
@@ -16,7 +16,15 @@ cd src
 simulator
 ```
 
+2. **Derivation of Surface potential **
 
+   I have provided derivation to calculating the surface potential (when depletion width is unknown) used in the code in the derivation folder.  
+
+   
+
+### To do
+
+- [ ] Simulate the accumulation mode for both p and n substrate MOS capacitor
 
 ### Contributor
 
