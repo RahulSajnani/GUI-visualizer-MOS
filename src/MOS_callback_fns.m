@@ -138,14 +138,16 @@ function potential = get_voltage_junction(N_a, K_s, K_ox, L, T_ox, Temp, V_a, ph
     
 end
 
-function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si)
+function [Q_density, Q_inv] = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, Temp, V_g, type_si)
     
     set_globals();
-    global q ticks k;
+    global q ticks k eps_0;
     
     [x_axis, mid_point, x_step, s] = initialize(L);
     
     Q_density = zeros(1, s);
+    C_ox_per_area = K_ox * eps_0 / (T_ox);
+
 
     V_fb = phi_m - phi_p;
     phi_s = get_phi_s(V_g, V_fb, K_s, N_a, T_ox, K_ox, type_si);
@@ -160,14 +162,29 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, T
         phi_f = -(k * Temp / q) * log(N_a / n_i);
     end
 
+    V_fb = phi_m - phi_p;
+
+    if type_si == 0
+        V_th = V_fb + sqrt(2 * q * K_s * eps_0 * N_a * 2 * phi_f) / C_ox_per_area + 2 * phi_f;
+    else
+        V_th = V_fb - sqrt(2 * q * K_s * eps_0 * -N_a * 2 * abs(phi_f)) / C_ox_per_area + 2 * phi_f;
+    end
+
     % Obtain depletion width
     
+    Q_inv = 0;
     if (phi_s > 2 * phi_f) && type_si == 0
         phi_s = 2 * phi_f;
-
+        Q_inv = -C_ox_per_area * (V_g - V_th)* (100)^3;
+        % n_c = (n_i^2 / N_a) * exp(q * (phi_s - phi_p) / (k * Temp));
+        % fprint("ns %d", n_c);
     elseif (phi_s < 2 * phi_f) && type_si == 1
         phi_s = 2 * phi_f;
+        Q_inv = -C_ox_per_area * (V_g - V_th)* (100)^3;
+        
     end
+
+    % fprintf("%d", Q_inv);
     W = get_depletion_width(K_s, phi_s, N_a);
     
     % junction position and depletion width in steps
@@ -185,6 +202,56 @@ function Q_density = get_charge_density(N_a, K_s, K_ox, L, T_ox, phi_m, phi_p, T
     
 end
 
+function [Q_density_inv, E_field_inv, potential_inv] = inversion_region(Q_inv, E_i, E_f, Q_density, E_field, potential, x_axis, K_ox, K_s)
+
+    set_globals();
+    global eps_0;
+    if Q_inv < 0
+        type_si = 0;
+    else
+        type_si = 1;
+    end
+
+    % fprintf("%d", Q_inv);
+    Q_density_inv = Q_density;
+    E_field_inv = E_field;
+    potential_inv = potential;
+
+    if type_si == 0
+        % P substrate
+        index = max(find(E_i < E_f));
+    else
+        % N substrate
+        index = max(find(E_i > E_f));
+    end
+
+    s = size(Q_density);
+    s = s(2);
+    mid = int16(s / 2);
+    
+
+    y2 = E_field_inv(index);
+    x_wn = x_axis(index);
+    junction_m_ox = min(find(E_field ~= 0));
+    W_position = max(find(E_field_inv == 0));
+    potential_w_n = potential(index);
+    
+    V_a = potential(1);
+
+    if Q_inv ~= 0
+        Q_density_inv(mid:index) = Q_inv + Q_density_inv(mid:index);
+        Q_density_inv(1:junction_m_ox) = -Q_inv + Q_density_inv(1:junction_m_ox);
+        E_field_inv(mid:index) = (Q_inv / (K_ox * eps_0)) .* (x_axis(mid:index) - x_wn) + E_field_inv(mid:index);
+        E_field_inv(junction_m_ox: mid) = (K_s / K_ox) * E_field_inv(mid);
+
+        potential_inv(mid:index) = -(Q_inv / (K_ox * eps_0)) .* (x_axis(mid:index) - x_wn).^2 + potential(mid:index);
+        m = (V_a - potential_inv(mid)) / (x_axis(junction_m_ox) - x_axis(mid));
+        c = V_a - m * x_axis(junction_m_ox);
+        potential_inv(junction_m_ox:mid) = m * (x_axis(junction_m_ox:mid)) + c;
+
+    end
+
+end
 
 function [x_axis, mid_point, x_step, s] = initialize(L)
 
