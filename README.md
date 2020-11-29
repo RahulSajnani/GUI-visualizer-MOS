@@ -2,7 +2,7 @@
 
 This is a GUI simulator for MOS capacitors. Following is the demo for the same. 
 
-![simulator](./demo/MOS-cap-simulator.gif)
+![simulator](./demo/MOS-cap-simulator-inv.gif)
 
 ### Instructions
 
